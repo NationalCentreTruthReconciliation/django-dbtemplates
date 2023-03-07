@@ -44,6 +44,10 @@ class Command(BaseCommand):
             "-d", "--delete",
             action="store_true", dest="delete", default=False,
             help="Delete templates after syncing")
+        parser.add_argument(
+            "-n", "--dont-ask",
+            action="store_true", dest="auto_no", default=False,
+            help="Answer no to all template creation questions. This is the opposite of --force")
 
     def handle(self, **options):
         extension = options.get('ext')
@@ -51,6 +55,7 @@ class Command(BaseCommand):
         overwrite = options.get('overwrite')
         app_first = options.get('app_first')
         delete = options.get('delete')
+        auto_no = options.get('auto_no')
 
         if not extension.startswith("."):
             extension = ".%s" % extension
@@ -79,10 +84,13 @@ class Command(BaseCommand):
                         t = Template.on_site.get(name__exact=name)
                     except Template.DoesNotExist:
                         if not force:
-                            confirm = input(
-                                "\nA '%s' template doesn't exist in the "
-                                "database.\nCreate it with '%s'?"
-                                " (y/[n]): """ % (name, path))
+                            if auto_no:
+                                confirm = "n"
+                            else:
+                                confirm = input(
+                                    "\nA '%s' template doesn't exist in the "
+                                    "database.\nCreate it with '%s'?"
+                                    " (y/[n]): """ % (name, path))
                         if force or confirm.lower().startswith('y'):
                             with io.open(path, encoding='utf-8') as f:
                                 t = Template(name=name, content=f.read())
